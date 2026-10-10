@@ -1,0 +1,6 @@
+{
+  "name": "C&D Setu",
+  "description": "India's C&D Waste & Recycled Material Exchange Platform — Smart Segregation, Geo-Matching, Green Logistics, and CPCB Compliance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
