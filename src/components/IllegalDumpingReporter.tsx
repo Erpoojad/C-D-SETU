@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { IllegalDumpingReport } from '../types';
 import { AlertCircle, Camera, MapPin, CheckCircle2, ShieldAlert, Clock, ArrowRight, Eye, Send } from 'lucide-react';
+import { IMAGES } from '../assets/images';
 
 interface IllegalDumpingReporterProps {
   reports: IllegalDumpingReport[];
@@ -36,7 +37,7 @@ export const IllegalDumpingReporter: React.FC<IllegalDumpingReporterProps> = ({
         timestamp: 'Just now',
         estimatedTonnage,
         status: 'Reported',
-        imagePlaceholder: '/src/assets/images/hero_cd_recycling_1791642672171.jpg',
+        imagePlaceholder: IMAGES.heroCdRecycling,
         remarks: remarks || 'Dumped illegally at night. GPS geotagged for municipal clearance.',
       };
 

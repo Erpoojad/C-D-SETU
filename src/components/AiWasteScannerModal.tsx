@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Camera, Upload, Sparkles, Check, ArrowRight, DollarSign, ShieldAlert, Cpu } from 'lucide-react';
+import { IMAGES } from '../assets/images';
 
 interface AiWasteScannerModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ const PRESET_SAMPLES: PresetSample[] = [
   {
     id: 'sample-1',
     name: 'RCC Beam & Slab Demolition',
-    image: '/src/assets/images/material_recycled_aggregates_1791642686421.jpg',
+    image: IMAGES.recycledAggregates,
     description: 'Reinforced concrete debris with fractured lumps and exposed rebar',
     areaSqFt: 1200,
     projectType: 'Structural Concrete Demolition',
@@ -44,7 +45,7 @@ const PRESET_SAMPLES: PresetSample[] = [
   {
     id: 'sample-2',
     name: 'Residential Wall & Brick Masonry',
-    image: '/src/assets/images/material_reclaimed_bricks_1791642698748.jpg',
+    image: IMAGES.reclaimedBricks,
     description: 'Clay red brick partition walls dismantled during home renovation',
     areaSqFt: 650,
     projectType: 'Apartment Remodeling',
@@ -60,7 +61,7 @@ const PRESET_SAMPLES: PresetSample[] = [
   {
     id: 'sample-3',
     name: 'Bathroom & Floor Tile Strip-Out',
-    image: '/src/assets/images/hero_cd_recycling_1791642672171.jpg',
+    image: IMAGES.heroCdRecycling,
     description: 'Ceramic tiles, screed mortar, sanitary fittings, and light plaster',
     areaSqFt: 250,
     projectType: 'Bathroom Renovation',

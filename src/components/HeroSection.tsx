@@ -1,5 +1,6 @@
 import React from 'react';
 import { Camera, Search, ArrowRight, ShieldCheck, MapPin, Sparkles, Truck, CheckCircle2 } from 'lucide-react';
+import { IMAGES } from '../assets/images';
 
 interface HeroSectionProps {
   onOpenBookingModal: () => void;
@@ -17,7 +18,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       {/* Background Image with Measured Contrast Scrim */}
       <div className="absolute inset-0 z-0">
         <img
-          src="/src/assets/images/hero_cd_recycling_1791642672171.jpg"
+          src={IMAGES.heroCdRecycling}
           alt="Modern C&D Waste Recycling Yard"
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center brightness-60"
