@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { MaterialListing, MaterialCategory } from '../types';
 import { X, Plus, Sparkles, Upload, DollarSign, Check, ShieldCheck, ArrowRight } from 'lucide-react';
+import { IMAGES } from '../assets/images';
+import { CO2_AVOIDED_KG_PER_T } from '../lib/cdFactors';
 
 interface CreateListingModalProps {
   isOpen: boolean;
@@ -30,7 +32,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const [sellerPhone, setSellerPhone] = useState<string>('+91 98450 12345');
   const [isIS383, setIsIS383] = useState<boolean>(false);
   const [sampleImage, setSampleImage] = useState<string>(
-    '/src/assets/images/material_recycled_aggregates_1791642686421.jpg'
+    IMAGES.recycledAggregates
   );
 
   if (!isOpen) return null;
@@ -41,9 +43,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
 
     let defaultImg = sampleImage;
     if (category === 'brick_masonry') {
-      defaultImg = '/src/assets/images/material_reclaimed_bricks_1791642698748.jpg';
+      defaultImg = IMAGES.reclaimedBricks;
     } else if (category === 'metals' || category === 'soil_gravel') {
-      defaultImg = '/src/assets/images/hero_cd_recycling_1791642672171.jpg';
+      defaultImg = IMAGES.heroCdRecycling;
     }
 
     const newListing: MaterialListing = {
@@ -67,14 +69,14 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
       labSpecs: isIS383
         ? {
             aivValue: '22.1% (Compliant)',
-            crushingStrength: '29.0 N/mm²',
+            crushingStrength: 'ACV 27.0% (Max 30%)',
             waterAbsorption: '3.6%',
             siltContent: '0.9%',
           }
         : undefined,
       image: defaultImg,
       condition,
-      co2SavedKgPerUnit: category === 'concrete' ? 42 : category === 'metals' ? 1650 : 18,
+      co2SavedKgPerUnit: CO2_AVOIDED_KG_PER_T[category],
       availableFrom: 'Immediate Loadout',
       description,
     };

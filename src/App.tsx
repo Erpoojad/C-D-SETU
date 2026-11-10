@@ -34,6 +34,7 @@ import { PickupTrackerModal } from './components/PickupTrackerModal';
 import { CreateListingModal } from './components/CreateListingModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { CheckCircle2, Bell } from 'lucide-react';
+import { co2AvoidedKg } from './lib/cdFactors';
 
 export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>('generator');
@@ -98,7 +99,7 @@ export default function App() {
           quantity: newRequest.estimatedTons,
           unit: 'MT',
           status: newRequest.status,
-          co2SavedKg: Math.round(newRequest.estimatedTons * 42),
+          co2SavedKg: co2AvoidedKg(newRequest.materialType, newRequest.estimatedTons),
           destinationOrSource: newRequest.destinationPlant,
         },
         ...currentUser.history,
@@ -151,8 +152,8 @@ export default function App() {
       const updatedUser: UserProfile = {
         ...currentUser,
         reputationPoints: currentUser.reputationPoints + 50,
-        totalDivertedMT: +(currentUser.totalDivertedMT + (target?.estimatedTons || 3)).toFixed(1),
-        co2SavedKg: currentUser.co2SavedKg + Math.round((target?.estimatedTons || 3) * 42),
+        totalDivertedMT: +(currentUser.totalDivertedMT + (target?.estimatedTons ?? 0)).toFixed(1),
+        co2SavedKg: currentUser.co2SavedKg + (target ? co2AvoidedKg(target.materialType, target.estimatedTons) : 0),
       };
       setCurrentUser(updatedUser);
       setUserProfiles(userProfiles.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
@@ -193,13 +194,13 @@ export default function App() {
     showToast(`Incident reported to Ward Health Inspector. Tracking Token #${newReport.id}.`);
   };
 
-  const handleOrderSuccess = (details: { listingTitle: string; quantity: number; totalCost: number }) => {
+  const handleOrderSuccess = (details: { listingTitle: string; quantity: number; totalCost: number; co2PerUnitKg: number }) => {
     // Award buyer points for purchasing circular aggregates
     const updatedUser: UserProfile = {
       ...currentUser,
       reputationPoints: currentUser.reputationPoints + 50,
       totalDivertedMT: +(currentUser.totalDivertedMT + details.quantity).toFixed(1),
-      co2SavedKg: currentUser.co2SavedKg + Math.round(details.quantity * 42),
+      co2SavedKg: currentUser.co2SavedKg + Math.round(details.quantity * details.co2PerUnitKg),
     };
     setCurrentUser(updatedUser);
     setUserProfiles(userProfiles.map((u) => (u.id === updatedUser.id ? updatedUser : u)));

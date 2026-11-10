@@ -1,4 +1,5 @@
 import { MaterialListing, VehicleOption, PickupRequest, FacilityNode, IllegalDumpingReport, ManifestDocument, UserProfile } from '../types';
+import { IMAGES } from '../assets/images';
 
 export const INITIAL_LISTINGS: MaterialListing[] = [
   {
@@ -20,11 +21,11 @@ export const INITIAL_LISTINGS: MaterialListing[] = [
     isIS383Certified: true,
     labSpecs: {
       aivValue: '21.4% (Max 30%)',
-      crushingStrength: '28.5 N/mm²',
+      crushingStrength: 'ACV 26.5% (Max 30%)',
       waterAbsorption: '3.4% (Max 5%)',
       siltContent: '0.8%',
     },
-    image: '/src/assets/images/material_recycled_aggregates_1791642686421.jpg',
+    image: IMAGES.recycledAggregates,
     condition: 'Crushed Aggregates',
     co2SavedKgPerUnit: 42,
     availableFrom: 'Ready for Immediate Dispatch',
@@ -52,7 +53,7 @@ export const INITIAL_LISTINGS: MaterialListing[] = [
       waterAbsorption: '12.5%',
       siltContent: 'Nil',
     },
-    image: '/src/assets/images/material_reclaimed_bricks_1791642698748.jpg',
+    image: IMAGES.reclaimedBricks,
     condition: 'Clean Demolition',
     co2SavedKgPerUnit: 0.8,
     availableFrom: 'Next 48 Hours',
@@ -77,11 +78,11 @@ export const INITIAL_LISTINGS: MaterialListing[] = [
     isIS383Certified: true,
     labSpecs: {
       aivValue: '19.8%',
-      crushingStrength: '31.2 N/mm²',
+      crushingStrength: 'ACV 24.8% (Max 30%)',
       waterAbsorption: '3.1%',
       siltContent: '0.5%',
     },
-    image: '/src/assets/images/material_recycled_aggregates_1791642686421.jpg',
+    image: IMAGES.recycledAggregates,
     condition: 'Crushed Aggregates',
     co2SavedKgPerUnit: 44,
     availableFrom: 'Continuous Stock',
@@ -109,7 +110,7 @@ export const INITIAL_LISTINGS: MaterialListing[] = [
       waterAbsorption: 'N/A',
       siltContent: 'N/A',
     },
-    image: '/src/assets/images/hero_cd_recycling_1791642672171.jpg',
+    image: IMAGES.heroCdRecycling,
     condition: 'Segregated & Graded',
     co2SavedKgPerUnit: 1650,
     availableFrom: 'Immediate Loadout',
@@ -137,7 +138,7 @@ export const INITIAL_LISTINGS: MaterialListing[] = [
       waterAbsorption: '2.4%',
       siltContent: '1.1%',
     },
-    image: '/src/assets/images/material_recycled_aggregates_1791642686421.jpg',
+    image: IMAGES.recycledAggregates,
     condition: 'Crushed Aggregates',
     co2SavedKgPerUnit: 38,
     availableFrom: 'Continuous Stock',
@@ -164,7 +165,7 @@ export const INITIAL_LISTINGS: MaterialListing[] = [
     labSpecs: {
       siltContent: 'Pure Sandy Loam & Stone Mix',
     },
-    image: '/src/assets/images/hero_cd_recycling_1791642672171.jpg',
+    image: IMAGES.heroCdRecycling,
     condition: 'Clean Demolition',
     co2SavedKgPerUnit: 12,
     availableFrom: 'Free for direct pickup today',
@@ -188,7 +189,7 @@ export const INITIAL_LISTINGS: MaterialListing[] = [
     sellerType: 'Demolition Site',
     isVerified: true,
     isIS383Certified: false,
-    image: '/src/assets/images/material_reclaimed_bricks_1791642698748.jpg',
+    image: IMAGES.reclaimedBricks,
     condition: 'Raw Rubble',
     co2SavedKgPerUnit: 18,
     availableFrom: 'Available immediately',
@@ -647,7 +648,7 @@ export const INITIAL_DUMPING_REPORTS: IllegalDumpingReport[] = [
     timestamp: 'Today, 06:40 AM',
     estimatedTonnage: '~4 MT Concrete & Tile Rubble',
     status: 'Vehicle Dispatched',
-    imagePlaceholder: '/src/assets/images/hero_cd_recycling_1791642672171.jpg',
+    imagePlaceholder: IMAGES.heroCdRecycling,
     remarks: 'Dumped overnight by unregistered night tipper. GPS tagged by citizen camera. Enforcement team dispatched.',
   },
   {
@@ -660,7 +661,7 @@ export const INITIAL_DUMPING_REPORTS: IllegalDumpingReport[] = [
     timestamp: 'Yesterday, 04:15 PM',
     estimatedTonnage: '~12 MT Mixed Plaster & Brick Debris',
     status: 'Inspected by ULB',
-    imagePlaceholder: '/src/assets/images/hero_cd_recycling_1791642672171.jpg',
+    imagePlaceholder: IMAGES.heroCdRecycling,
     remarks: 'Noticed by ward health inspector. Notice served to nearest demolition contractor for geo-manifest verification.',
   },
 ];

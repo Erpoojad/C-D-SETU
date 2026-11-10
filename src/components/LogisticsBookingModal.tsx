@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FLEET_VEHICLES } from '../data/mockData';
 import { VehicleOption, PickupRequest } from '../types';
 import { X, Truck, Check, MapPin, Calendar, Clock, DollarSign, ShieldCheck, ArrowRight, Phone, Navigation } from 'lucide-react';
+import { salvageValueInr } from '../lib/cdFactors';
+import type { MaterialCategory } from '../types';
 
 interface LogisticsBookingModalProps {
   isOpen: boolean;
@@ -39,15 +41,8 @@ export const LogisticsBookingModal: React.FC<LogisticsBookingModalProps> = ({
   const rawTransportFee = selectedVehicle.baseFare + Math.round(estimatedDistance * selectedVehicle.ratePerKm);
   const transportFee = isPoolingEnabled ? Math.round(rawTransportFee * 0.72) : rawTransportFee;
 
-  // Salvage credit: If segregated, clean concrete gives ₹650/MT, bricks ₹450/MT, metals ₹4200/MT, mixed = ₹0
-  let salvageRatePerTon = 0;
-  if (isSegregated) {
-    if (materialType === 'concrete') salvageRatePerTon = 650;
-    else if (materialType === 'brick_masonry') salvageRatePerTon = 480;
-    else if (materialType === 'metals') salvageRatePerTon = 3800;
-    else salvageRatePerTon = 250;
-  }
-  const salvageCredit = Math.round(estimatedTons * salvageRatePerTon);
+  // Salvage credit from the shared factor table; mixed loads earn nothing.
+  const salvageCredit = salvageValueInr(materialType as MaterialCategory, estimatedTons, isSegregated);
   const netPayout = salvageCredit - transportFee;
 
   const handleBook = () => {

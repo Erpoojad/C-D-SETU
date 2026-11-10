@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { MaterialListing } from '../types';
 import { X, Check, Truck, ShieldCheck, MapPin, ArrowRight } from 'lucide-react';
+import { freightInr } from '../lib/cdFactors';
 
 interface MaterialOrderModalProps {
   listing: MaterialListing | null;
   onClose: () => void;
-  onOrderSuccess: (details: { listingTitle: string; quantity: number; totalCost: number }) => void;
+  onOrderSuccess: (details: { listingTitle: string; quantity: number; totalCost: number; co2PerUnitKg: number }) => void;
 }
 
 export const MaterialOrderModal: React.FC<MaterialOrderModalProps> = ({
@@ -21,8 +22,7 @@ export const MaterialOrderModal: React.FC<MaterialOrderModalProps> = ({
   if (!listing) return null;
 
   const baseMaterialCost = orderQuantity * listing.pricePerUnit;
-  // Freight cost approx ₹45 / ton / km
-  const freightCost = Math.round(orderQuantity * distanceKm * 42);
+  const freightCost = freightInr(orderQuantity, distanceKm);
   const totalCost = baseMaterialCost + freightCost;
 
   // Savings comparison vs virgin quarry material
@@ -37,6 +37,7 @@ export const MaterialOrderModal: React.FC<MaterialOrderModalProps> = ({
         listingTitle: listing.title,
         quantity: orderQuantity,
         totalCost,
+        co2PerUnitKg: listing.co2SavedKgPerUnit,
       });
       setIsOrdered(false);
       onClose();

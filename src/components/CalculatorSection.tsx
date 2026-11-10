@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { estimateGeneration, LOOSE_RUBBLE_DENSITY_T_PER_M3, STANDARD_TIPPER_PAYLOAD_T } from '../lib/cdFactors';
 import { Calculator, Leaf, DollarSign, ArrowRight, BarChart3, Info } from 'lucide-react';
 
 interface CalculatorSectionProps {
@@ -10,43 +11,18 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({
 }) => {
   const [areaSqFt, setAreaSqFt] = useState<number>(2400);
   const [projectType, setProjectType] = useState<'demolition' | 'renovation' | 'road'>('demolition');
-  const [structureStyle, setStructureStyle] = useState<'rcc' | 'brick_loadbearing' | 'interior'>('rcc');
+  const [structureStyle, setStructureStyle] = useState<'rcc' | 'brick_loadbearing'>('rcc');
 
-  // Benchmark metrics from CPCB & TIFAC:
-  // Demolition generates ~50 kg / sq.ft for RCC, ~42 kg / sq.ft for brick
-  // Renovation generates ~12 kg / sq.ft
-  // Road pavement generates ~90 kg / sq.ft
-  let genRateKgPerSqFt = 50;
-  if (projectType === 'renovation') {
-    genRateKgPerSqFt = 14;
-  } else if (projectType === 'road') {
-    genRateKgPerSqFt = 85;
-  } else if (structureStyle === 'brick_loadbearing') {
-    genRateKgPerSqFt = 44;
-  }
-
-  const totalTons = Math.round((areaSqFt * genRateKgPerSqFt) / 1000);
-
-  // Exact composition according to Slide 6 (CPCB/TIFAC data):
-  // 36% Soil, Sand & Gravel, 31% Brick & Masonry, 23% Concrete, 5% Metals, 2% Bitumen, 2% Wood, 1% Others
-  const soilTons = +(totalTons * 0.36).toFixed(1);
-  const brickTons = +(totalTons * 0.31).toFixed(1);
-  const concreteTons = +(totalTons * 0.23).toFixed(1);
-  const metalTons = +(totalTons * 0.05).toFixed(1);
-  const otherTons = +(totalTons * 0.05).toFixed(1);
-
-  // CO2 savings: Recycled aggregate saves ~40% CO2 vs quarry stone (~42 kg CO2 per ton of RCA) + recycled steel saves 1,600 kg CO2/ton
-  const co2MitigatedKg = Math.round((concreteTons + brickTons) * 42 + metalTons * 1650);
-
-  // Cost economics:
-  // Salvage revenue from segregated sale:
-  // Concrete: ₹680/T, Bricks: ₹5.5/brick or ₹520/T, Metals: ₹42,000/T, Soil: ₹180/T
-  const salvageRevenue = Math.round(
-    concreteTons * 680 + brickTons * 520 + metalTons * 42000 + soilTons * 180
-  );
-  // Traditional mixed dumping fees + transport: ₹950 per ton
-  const traditionalDumpFee = Math.round(totalTons * 950);
-  const netFinancialGain = salvageRevenue + traditionalDumpFee;
+  const est = estimateGeneration(areaSqFt, projectType, structureStyle);
+  const genRateKgPerSqFt = est.rateKgPerSqFt;
+  const totalTons = est.totalTonnes;
+  const soilTons = est.byMaterial.soil_gravel;
+  const brickTons = est.byMaterial.brick_masonry;
+  const concreteTons = est.byMaterial.concrete;
+  const metalTons = est.byMaterial.metals;
+  const otherTons = +(est.byMaterial.bitumen + est.byMaterial.wood + est.byMaterial.others).toFixed(1);
+  const co2MitigatedKg = est.co2AvoidedKg;
+  const netFinancialGain = est.benefitVsMixedDumpingInr;
 
   return (
     <section id="calculator" className="py-16 bg-white border-t border-slate-200">
@@ -155,13 +131,13 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({
               <div className="text-slate-500 font-medium flex items-center justify-between">
                 <span>Estimated Rubble Volume:</span>
                 <span className="font-semibold text-slate-800 tabular-nums">
-                  ~{(totalTons * 18.5).toFixed(0)} CFT
+                  ~{est.looseVolumeCft.toLocaleString('en-IN')} CFT loose (@ {LOOSE_RUBBLE_DENSITY_T_PER_M3} t/m³)
                 </span>
               </div>
               <div className="text-slate-500 font-medium flex items-center justify-between pt-1 border-t border-slate-100">
                 <span>Recommended Tipper Trips:</span>
                 <span className="font-bold text-emerald-700 tabular-nums">
-                  {Math.ceil(totalTons / 8.5)} trips (8 MT Tipper)
+                  {est.tipperTrips} trips ({STANDARD_TIPPER_PAYLOAD_T} MT Tipper)
                 </span>
               </div>
             </div>
@@ -180,7 +156,7 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({
               </div>
               <div className="text-right">
                 <span className="text-2xs font-bold uppercase tracking-wider text-emerald-700">
-                  Net Economic Advantage
+                  Benefit vs Mixed Dumping
                 </span>
                 <div className="text-2xl font-extrabold text-emerald-700 tabular-nums mt-0.5">
                   +₹{netFinancialGain.toLocaleString('en-IN')}
@@ -188,11 +164,11 @@ export const CalculatorSection: React.FC<CalculatorSectionProps> = ({
               </div>
             </div>
 
-            {/* Material Distribution Bars (Based exactly on Presentation slide 6) */}
+            {/* Material distribution bars — shares from COMPOSITION in lib/cdFactors */}
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
-                <span>Composition Breakdown (CPCB National Baseline)</span>
-                <span className="text-2xs text-slate-500">Slide 6 Data Grounded</span>
+                <span>Composition Breakdown (Indian National Baseline)</span>
+                <span className="text-2xs text-slate-500">Source: TIFAC (2001)</span>
               </div>
 
               <div className="space-y-2 text-xs">
