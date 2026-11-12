@@ -28,6 +28,12 @@ All tonnage, money and carbon figures come from one module, [`src/lib/cdFactors.
 
 Aggregate lab values follow IS 383:2016 / IS 2386 (Part 4) conventions: Aggregate Impact Value and Aggregate Crushing Value are percentages (≤30% for wearing surfaces).
 
+## Deploy
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Erpoojad/c-d-setu)
+
+Deploys as a free Render static site using [`render.yaml`](render.yaml): `npm ci && npm run build`, published from `dist/`. Every push to `main` redeploys automatically.
+
 ## Run it locally
 
 Requires Node.js 22 or newer.
