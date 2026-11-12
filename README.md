@@ -1,79 +1,93 @@
 # C&D Setu
 
-**A construction & demolition (C&D) waste exchange for Indian cities — linking the people who generate rubble with the transporters, recyclers and buyers who can use it, and producing the paperwork the C&D Waste Management Rules, 2016 require.**
+**A working construction & demolition (C&D) waste exchange for Indian cities.** It connects people with rubble to dispose of, the transporters who carry it, the plants that process it and the builders who buy recycled material. Every delivery produces a manifest that anyone can verify, as the C&D Waste Management Rules, 2016 expect.
 
-India generates C&D waste in the tens of millions of tonnes a year, and most of it is dumped unsegregated on roadsides, drains and open plots. The material isn't the problem — crushed concrete and masonry can replace virgin aggregate under IS 383:2016 — the problem is that generators, transporters and recyclers can't find each other, and nobody gets paid for segregating. C&D Setu is a prototype of the missing marketplace.
+The app starts empty. Everything you see in it was entered by real accounts.
 
-> **Status: frontend prototype.** Every screen works, but all data is mock data held in browser memory (`src/data/mockData.ts`). Nothing is persisted, there is no backend or authentication, and the "AI scanner" returns preset samples rather than analysing a photo. See [Roadmap](#roadmap).
+## Who does what
 
-## What it does
+| Account | Can do |
+|---|---|
+| **Waste generator** (builder, contractor, homeowner) | Request pickups, follow the truck through each stage, get a manifest, sell or give away reusable material, scan a debris heap |
+| **Transporter** | Register tippers and drivers, accept open pickup jobs in their city, record weighbridge weights, deliver to a facility and issue the manifest |
+| **Recycler / plant** | Register facilities with accepted materials, capacity, gate fee and ULB authorisation; see incoming loads; sell recycled aggregate with IS 383 test data |
+| **Material buyer** | Browse and order recycled aggregate, bricks and steel; freight is estimated from distance |
+| **Municipal authority** | See every pickup in the city, inspect and clear dumping reports. **Sign-up needs an invite code** (`AUTHORITY_INVITE_CODE`) so nobody can self-appoint as an officer |
 
-| Module | For | What it shows |
-|---|---|---|
-| **Waste & carbon calculator** | Generators, planners | Tonnage, material split, loose volume, tipper trips, salvage value and CO₂ avoided from plan area and project type |
-| **Material marketplace** | Buyers, contractors | Recycled aggregates, reclaimed bricks and steel with IS 383 lab data (AIV, ACV, water absorption, silt) |
-| **Tipper booking & tracking** | Generators, transporters | Vehicle choice, pooled small-lot pickups, salvage credit vs transport fee, status timeline |
-| **Compliance manifest** | Generators, ULBs | CPCB-style waste movement manifest with net weight and destination facility |
-| **Decentralised GIS network** | ULB planners | Micro-crushers and ward-level collection points for Tier-2/3 cities, not just one central plant |
-| **Smart routing** | Transporters | Nearest-facility routing by material and capacity |
-| **Illegal dumping reporter** | Citizens, ward officers | Report a dumping hotspot and follow it to clearance |
-| **Stakeholder dashboards & reputation** | All roles | Role-specific views and points for verified diversion |
+Anyone signed in can report illegal dumping with a photo and map pin. Anyone, signed in or not, can verify a manifest at `/#/manifest/<number>`.
+
+### Pickup lifecycle
+
+`requested → scheduled (transporter, vehicle and fee fixed) → en route → picked up (gross/tare) → completed (facility + net weight → manifest number)`
+
+The generator can cancel until the truck leaves. The transporter can release a job back to the open list. Points are awarded only on verified outcomes: completed manifests, delivered orders, new listings and cleared dumping reports.
 
 ## Engineering basis
 
-All tonnage, money and carbon figures come from one module, [`src/lib/cdFactors.ts`](src/lib/cdFactors.ts), and are covered by unit tests. Each factor is labelled in the source:
+All tonnage, money and carbon figures come from [`src/lib/cdFactors.ts`](src/lib/cdFactors.ts), which has unit tests. Each factor is labelled:
 
-- **Sourced** — the composition of Indian C&D waste by mass (TIFAC, 2001): soil/sand/gravel 36%, brick & masonry 31%, concrete 23%, metals 5%, bitumen 2%, wood 2%, others 1%. Demolition generation rates are set within TIFAC's ~300–500 kg/m² band for pucca buildings.
-- **Indicative** — salvage prices, disposal fees, freight (₹42 per tonne-km), loose rubble density (1.4 t/m³) and CO₂ avoided per tonne. These are reasonable 2026 assumptions for a prototype, **not** citable values; replace them with referenced figures before quoting any output in a report.
+- **Sourced**: composition of Indian C&D waste by mass (TIFAC, 2001) and demolition generation rates within TIFAC's ~300–500 kg/m² band.
+- **Indicative**: salvage prices, disposal fees, freight (₹42 per tonne-km), loose rubble density (1.4 t/m³), CO₂ avoided per tonne and road circuity (1.3). These are reasonable assumptions, **not** citable values; replace them with referenced figures before quoting any output in a report.
 
-Aggregate lab values follow IS 383:2016 / IS 2386 (Part 4) conventions: Aggregate Impact Value and Aggregate Crushing Value are percentages (≤30% for wearing surfaces).
+Aggregate test values follow IS 383:2016 / IS 2386 (Part 4): AIV and ACV are percentages (≤ 30% for wearing surfaces). Listings can only claim IS 383 compliance if they include an AIV or ACV result.
 
-## Deploy
+The optional **photo scanner** sends the picture to Google Gemini to estimate composition and, if something in the frame shows scale, volume. Weight and value are then calculated with the factors above, not by the model. A measured volume overrides the model's guess.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Erpoojad/c-d-setu)
+## Architecture
 
-Deploys as a free Render static site using [`render.yaml`](render.yaml): `npm ci && npm run build`, published from `build/`. Every push to `main` redeploys automatically.
+```
+server/          Express API (TypeScript, run with tsx)
+  app.ts         Routes, validation (zod), role checks, pickup state machine
+  db.ts          Postgres pool + schema (created on start-up)
+  auth.ts        bcrypt passwords, signed httpOnly session cookie
+  scan.ts        Gemini photo analysis
+src/             React + Vite + Tailwind frontend
+  views/         One screen per route
+  lib/           Engineering factors, formatting, session/routing
+```
 
-## Run it locally
+The server serves the built frontend, so the whole app is one web service plus one Postgres database.
 
-Requires Node.js 22 or newer.
+## Run locally
+
+Needs Node.js 22+ and PostgreSQL.
 
 ```bash
+cp .env.example .env          # set DATABASE_URL and SESSION_SECRET
 npm install
-npm run dev        # http://localhost:3000
+npm run build
+set -a; . ./.env; set +a
+npm start                     # http://localhost:8080
 ```
+
+For development with hot reload, run `npm run dev:api` (API on :8080) and `npm run dev` (frontend on :3000, proxies `/api`).
 
 | Command | Does |
 |---|---|
-| `npm run dev` | Development server with hot reload |
-| `npm run build` | Production build into `build/` |
-| `npm run preview` | Serve the production build |
+| `npm start` | Production server (API + frontend) |
+| `npm run dev` / `npm run dev:api` | Frontend / API with hot reload |
+| `npm run build` | Build the frontend into `build/` |
 | `npm run lint` | TypeScript type check |
-| `npm test` | Unit tests for the engineering factors |
-| `npm run check` | Type check + tests + build — what CI runs |
+| `npm test` | Unit tests; API tests too when `TEST_DATABASE_URL` is set (that database is wiped) |
+| `npm run check` | Type check + tests + build (what CI runs, with a Postgres service) |
 
-## Project structure
+## Deploy on Render
 
-```
-src/
-  App.tsx              Top-level state and modal wiring
-  lib/cdFactors.ts     Engineering factors and calculations (single source of truth)
-  data/mockData.ts     Mock listings, fleet, pickups, facilities, users
-  types/index.ts       Domain types
-  components/          One file per section or modal
-  assets/images.ts     Image imports (so they ship in production builds)
-```
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Erpoojad/c-d-setu)
 
-## Roadmap
+[`render.yaml`](render.yaml) creates a free Node web service and a free Postgres database in Singapore. You set `AUTHORITY_INVITE_CODE`, and optionally `GEMINI_API_KEY`. Notes on the free tier:
 
-1. **Persistence and backend** — store listings, pickups and manifests in a database instead of React state.
-2. **Real material scanner** — classify an uploaded rubble photo (the project was scaffolded with a Gemini API key in `.env.example` for this; it is not wired up yet).
-3. **Real maps** — replace the illustrative SVG maps with OpenStreetMap/Leaflet and live facility coordinates.
-4. **Cited factors** — replace every *indicative* factor with a referenced Indian value, and expose the reference in the UI.
-5. **Authentication and roles** — real accounts for generators, transporters, recyclers and ULB officers.
+- The web service sleeps after 15 minutes without traffic; the first request after that takes about a minute.
+- **Render deletes free Postgres databases 30 days after creation** unless upgraded. Upgrade the database before relying on it.
+
+## Limitations
+
+- Photos are stored in Postgres, capped at 2 MB each after in-browser compression. Fine for a pilot, not for scale.
+- Notifications are in-app only (no SMS or email). Phone numbers are shared once a job or order is accepted.
+- Distances are straight-line × 1.3 from map pins, not road routing.
 
 ## Regulatory context
 
 - Construction & Demolition Waste Management Rules, 2016 (MoEFCC)
 - CPCB Guidelines on Environmental Management of C&D Wastes, 2017
-- IS 383:2016 — Coarse and Fine Aggregate for Concrete (permits recycled aggregates)
+- IS 383:2016, Coarse and Fine Aggregate for Concrete (permits recycled aggregates)

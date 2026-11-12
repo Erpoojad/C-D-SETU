@@ -1,337 +1,204 @@
-import React, { useState } from 'react';
-import {
-  UserRole,
-  MaterialListing,
-  PickupRequest,
-  IllegalDumpingReport,
-  ManifestDocument,
-  UserProfile,
-  PickupStatus,
-} from './types';
-import {
-  INITIAL_LISTINGS,
-  INITIAL_PICKUPS,
-  INITIAL_DUMPING_REPORTS,
-  SAMPLE_MANIFEST,
-  INITIAL_USER_PROFILES,
-} from './data/mockData';
-import { Header } from './components/Header';
-import { HeroSection } from './components/HeroSection';
-import { StakeholderDashboard } from './components/StakeholderDashboard';
-import { MaterialMarketplace } from './components/MaterialMarketplace';
-import { DecentralizedGISNetwork } from './components/DecentralizedGISNetwork';
-import { SmartRoutingEngine } from './components/SmartRoutingEngine';
+import { useEffect, useState } from 'react';
+import { Award, Menu, Recycle, X } from 'lucide-react';
+import { navigate, useRoute, useSession } from './lib/session';
+import type { UserRole } from './types';
+import { Loading } from './components/ui';
 import { CalculatorSection } from './components/CalculatorSection';
-import { IllegalDumpingReporter } from './components/IllegalDumpingReporter';
-import { Footer } from './components/Footer';
+import { levelFor } from './views/ProfileView';
+import { HomeView } from './views/HomeView';
+import { AuthView } from './views/AuthView';
+import { DashboardView } from './views/DashboardView';
+import { MarketplaceView } from './views/MarketplaceView';
+import { OrdersView } from './views/OrdersView';
+import { PickupsView } from './views/PickupsView';
+import { FleetView } from './views/FleetView';
+import { FacilitiesView } from './views/FacilitiesView';
+import { ReportsView } from './views/ReportsView';
+import { ScannerView } from './views/ScannerView';
+import { ProfileView } from './views/ProfileView';
+import { ManifestView } from './views/ManifestView';
 
-// Modals
-import { AiWasteScannerModal } from './components/AiWasteScannerModal';
-import { LogisticsBookingModal } from './components/LogisticsBookingModal';
-import { ComplianceManifestModal } from './components/ComplianceManifestModal';
-import { MaterialOrderModal } from './components/MaterialOrderModal';
-import { PickupTrackerModal } from './components/PickupTrackerModal';
-import { CreateListingModal } from './components/CreateListingModal';
-import { UserProfileModal } from './components/UserProfileModal';
-import { CheckCircle2, Bell } from 'lucide-react';
-import { co2AvoidedKg } from './lib/cdFactors';
+interface NavItem {
+  path: string;
+  label: string;
+  roles?: UserRole[];
+}
+
+const SIGNED_IN_NAV: NavItem[] = [
+  { path: '/dashboard', label: 'Dashboard' },
+  { path: '/pickups', label: 'Pickups' },
+  { path: '/scanner', label: 'Scan heap', roles: ['generator', 'recycler'] },
+  { path: '/fleet', label: 'Fleet', roles: ['transporter'] },
+  { path: '/market', label: 'Marketplace' },
+  { path: '/orders', label: 'Orders', roles: ['generator', 'buyer', 'recycler', 'transporter'] },
+  { path: '/facilities', label: 'Facilities' },
+  { path: '/reports', label: 'Dumping reports' },
+];
+
+const PUBLIC_NAV: NavItem[] = [
+  { path: '/market', label: 'Marketplace' },
+  { path: '/facilities', label: 'Facilities' },
+  { path: '/calculator', label: 'Calculator' },
+  { path: '/manifest', label: 'Verify manifest' },
+];
+
+/** Pages that need an account. Everything else is public. */
+const PROTECTED = new Set(['dashboard', 'pickups', 'scanner', 'fleet', 'orders', 'reports', 'profile']);
+const ROLE_ONLY: Record<string, UserRole[]> = { fleet: ['transporter'] };
 
 export default function App() {
-  const [currentRole, setCurrentRole] = useState<UserRole>('generator');
-  const [userProfiles, setUserProfiles] = useState<UserProfile[]>(INITIAL_USER_PROFILES);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USER_PROFILES[0]);
+  const { user, ready } = useSession();
+  const route = useRoute();
+  const page = route.parts[0] ?? '';
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const [listings, setListings] = useState<MaterialListing[]>(INITIAL_LISTINGS);
-  const [pickups, setPickups] = useState<PickupRequest[]>(INITIAL_PICKUPS);
-  const [dumpingReports, setDumpingReports] = useState<IllegalDumpingReport[]>(INITIAL_DUMPING_REPORTS);
-  const [manifestDoc, setManifestDoc] = useState<ManifestDocument>(SAMPLE_MANIFEST);
+  useEffect(() => setMenuOpen(false), [route.path]);
 
-  // Modals state
-  const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
-  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
-  const [isManifestOpen, setIsManifestOpen] = useState<boolean>(false);
-  const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
-  const [isCreateListingOpen, setIsCreateListingOpen] = useState<boolean>(false);
-  const [selectedListingForOrder, setSelectedListingForOrder] = useState<MaterialListing | null>(null);
-  const [trackingPickup, setTrackingPickup] = useState<PickupRequest | null>(null);
-
-  // Booking preload params from scanner or calculator
-  const [bookingPreloadTons, setBookingPreloadTons] = useState<number>(4.5);
-  const [bookingPreloadMaterial, setBookingPreloadMaterial] = useState<string>('concrete');
-  const [bookingPreloadSegregated, setBookingPreloadSegregated] = useState<boolean>(true);
-
-  // Toast feedback
-  const [toastMessage, setToastMessage] = useState<{ text: string; type?: 'info' | 'success' } | null>(null);
-
-  const showToast = (text: string, type: 'info' | 'success' = 'success') => {
-    setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 4500);
-  };
-
-  const handleOpenBooking = (tons?: number) => {
-    if (tons) {
-      setBookingPreloadTons(tons);
+  // Signed-out visitors to a private page go to sign-in, then come back here.
+  useEffect(() => {
+    if (!ready) return;
+    if (!user && PROTECTED.has(page)) {
+      navigate('/login', { next: window.location.hash.replace(/^#/, '') });
+    } else if (user && (page === 'login' || page === 'signup')) {
+      navigate(route.query.get('next') || '/dashboard');
+    } else if (user && page === '') {
+      navigate('/dashboard');
     }
-    setIsBookingOpen(true);
-  };
+  }, [ready, user, page]);
 
-  const handleProceedFromScanner = (tons: number, material: string, isSeg: boolean) => {
-    setBookingPreloadTons(tons);
-    setBookingPreloadMaterial(material);
-    setBookingPreloadSegregated(isSeg);
-    setIsBookingOpen(true);
-  };
+  const nav = user ? SIGNED_IN_NAV.filter((n) => !n.roles || n.roles.includes(user.role)) : PUBLIC_NAV;
+  const isActive = (p: string) => route.path === p || route.path.startsWith(`${p}/`);
 
-  const handleConfirmBooking = (newRequest: PickupRequest) => {
-    setPickups([newRequest, ...pickups]);
-
-    // Update user profile history & reputation
-    const updatedUser: UserProfile = {
-      ...currentUser,
-      reputationPoints: currentUser.reputationPoints + 30,
-      totalTransactions: currentUser.totalTransactions + 1,
-      history: [
-        {
-          id: `hist-${Date.now().toString().slice(-4)}`,
-          date: 'Just now',
-          type: 'disposal',
-          title: `${newRequest.isSegregated ? 'Segregated' : 'Mixed'} ${newRequest.materialType} (${newRequest.estimatedTons} MT)`,
-          quantity: newRequest.estimatedTons,
-          unit: 'MT',
-          status: newRequest.status,
-          co2SavedKg: co2AvoidedKg(newRequest.materialType, newRequest.estimatedTons),
-          destinationOrSource: newRequest.destinationPlant,
-        },
-        ...currentUser.history,
-      ],
-      reputationLog: [
-        {
-          id: `rep-${Date.now().toString().slice(-4)}`,
-          date: 'Just now',
-          title: 'Scheduled Responsible Tipper Dispatch',
-          pointsDelta: 30,
-          reason: `Manifest #${newRequest.manifestId} created with GPS routing`,
-          type: 'gain',
-        },
-        ...currentUser.reputationLog,
-      ],
-    };
-
-    setCurrentUser(updatedUser);
-    setUserProfiles(userProfiles.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-    showToast(`Tipper booked for ${newRequest.siteName}! Earned +30 Green Points.`);
-  };
-
-  const handleUpdatePickupStatus = (pickupId: string, nextStatus: PickupStatus) => {
-    const updatedPickups = pickups.map((p) => {
-      if (p.id === pickupId) {
-        const updatedTimeline = p.statusTimeline.map((item) => {
-          if (item.status === nextStatus) {
-            return { ...item, completed: true, time: 'Just now' };
-          }
-          return item;
-        });
-
-        return {
-          ...p,
-          status: nextStatus,
-          statusTimeline: updatedTimeline,
-        };
-      }
-      return p;
-    });
-
-    setPickups(updatedPickups);
-    const target = updatedPickups.find((p) => p.id === pickupId);
-    if (target) {
-      setTrackingPickup(target);
+  let content: React.ReactNode;
+  if (!ready || (!user && PROTECTED.has(page))) {
+    content = <Loading />;
+  } else if (user && ROLE_ONLY[page] && !ROLE_ONLY[page].includes(user.role)) {
+    content = <NotFound text="This page is for transporter accounts." />;
+  } else {
+    switch (page) {
+      case '':
+        content = <HomeView />;
+        break;
+      case 'login':
+        content = <AuthView mode="login" />;
+        break;
+      case 'signup':
+        content = <AuthView mode="signup" />;
+        break;
+      case 'dashboard':
+        content = <DashboardView />;
+        break;
+      case 'pickups':
+        content = <PickupsView />;
+        break;
+      case 'scanner':
+        content = <ScannerView />;
+        break;
+      case 'fleet':
+        content = <FleetView />;
+        break;
+      case 'market':
+        content = <MarketplaceView />;
+        break;
+      case 'orders':
+        content = <OrdersView />;
+        break;
+      case 'facilities':
+        content = <FacilitiesView />;
+        break;
+      case 'reports':
+        content = <ReportsView />;
+        break;
+      case 'profile':
+        content = <ProfileView />;
+        break;
+      case 'manifest':
+        content = <ManifestView no={route.parts[1]} />;
+        break;
+      case 'calculator':
+        content = <CalculatorSection onOpenBookingModal={(t) => navigate('/pickups', { new: 1, tons: t })} />;
+        break;
+      default:
+        content = <NotFound text="This page does not exist." />;
     }
-
-    if (nextStatus === 'Disposal complete') {
-      // Award additional completion points & tons diverted
-      const updatedUser: UserProfile = {
-        ...currentUser,
-        reputationPoints: currentUser.reputationPoints + 50,
-        totalDivertedMT: +(currentUser.totalDivertedMT + (target?.estimatedTons ?? 0)).toFixed(1),
-        co2SavedKg: currentUser.co2SavedKg + (target ? co2AvoidedKg(target.materialType, target.estimatedTons) : 0),
-      };
-      setCurrentUser(updatedUser);
-      setUserProfiles(userProfiles.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-      showToast(`Disposal Complete! +50 Points awarded for verified diversion.`);
-    } else {
-      showToast(`Pickup Status Updated: "${nextStatus}" for lot #${pickupId}`);
-    }
-  };
-
-  const handleCreateListing = (newListing: MaterialListing) => {
-    setListings([newListing, ...listings]);
-
-    // Award user points for listing circular material
-    const updatedUser: UserProfile = {
-      ...currentUser,
-      reputationPoints: currentUser.reputationPoints + 40,
-      totalTransactions: currentUser.totalTransactions + 1,
-      reputationLog: [
-        {
-          id: `rep-${Date.now().toString().slice(-4)}`,
-          date: 'Just now',
-          title: 'Circular Material Listed for Exchange',
-          pointsDelta: 40,
-          reason: `Listed ${newListing.title} (${newListing.quantity} ${newListing.unit})`,
-          type: 'gain',
-        },
-        ...currentUser.reputationLog,
-      ],
-    };
-
-    setCurrentUser(updatedUser);
-    setUserProfiles(userProfiles.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-    showToast(`Published "${newListing.title}" to marketplace! +40 Green Points added.`);
-  };
-
-  const handleAddDumpingReport = (newReport: IllegalDumpingReport) => {
-    setDumpingReports([newReport, ...dumpingReports]);
-    showToast(`Incident reported to Ward Health Inspector. Tracking Token #${newReport.id}.`);
-  };
-
-  const handleOrderSuccess = (details: { listingTitle: string; quantity: number; totalCost: number; co2PerUnitKg: number }) => {
-    // Award buyer points for purchasing circular aggregates
-    const updatedUser: UserProfile = {
-      ...currentUser,
-      reputationPoints: currentUser.reputationPoints + 50,
-      totalDivertedMT: +(currentUser.totalDivertedMT + details.quantity).toFixed(1),
-      co2SavedKg: currentUser.co2SavedKg + Math.round(details.quantity * details.co2PerUnitKg),
-    };
-    setCurrentUser(updatedUser);
-    setUserProfiles(userProfiles.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-    showToast(`Order confirmed for ${details.quantity} tons of ${details.listingTitle}! +50 Green Points.`);
-  };
-
-  const scrollToMarketplace = () => {
-    document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
-      {/* Toast Notification Banner */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs max-w-md animate-fade-in">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span className="font-medium">{toastMessage.text}</span>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 print:hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          <a href={user ? '#/dashboard' : '#/'} className="flex items-center gap-2 shrink-0">
+            <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center"><Recycle className="w-5 h-5" /></span>
+            <span className="font-extrabold text-slate-900 tracking-tight">C&amp;D Setu</span>
+          </a>
+          <nav className="hidden lg:flex items-center gap-1" aria-label="Main">
+            {nav.map((n) => (
+              <a
+                key={n.path}
+                href={`#${n.path}`}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold ${isActive(n.path) ? 'bg-emerald-50 text-emerald-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
+              >
+                {n.label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <a href="#/profile" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-emerald-300">
+                <Award className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-semibold text-slate-800 max-w-[10rem] truncate">{user.name.split(' ')[0]}</span>
+                <span className="text-xs text-slate-500 tabular-nums">{user.points} · {levelFor(user.points).name}</span>
+              </a>
+            ) : (
+              <div className="hidden sm:flex items-center gap-2">
+                <a href="#/login" className="px-3 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900">Sign in</a>
+                <a href="#/signup" className="px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg">Create account</a>
+              </div>
+            )}
+            <button className="lg:hidden p-2 rounded-lg hover:bg-slate-100" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" aria-expanded={menuOpen}>
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
-      )}
+        {menuOpen && (
+          <nav className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 grid gap-1" aria-label="Mobile">
+            {nav.map((n) => (
+              <a key={n.path} href={`#${n.path}`} className={`px-3 py-2.5 rounded-lg text-sm font-semibold ${isActive(n.path) ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700'}`}>
+                {n.label}
+              </a>
+            ))}
+            {user ? (
+              <a href="#/profile" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-700">Profile · {user.points} points</a>
+            ) : (
+              <>
+                <a href="#/login" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-700">Sign in</a>
+                <a href="#/signup" className="px-3 py-2.5 rounded-lg text-sm font-semibold text-emerald-700">Create account</a>
+              </>
+            )}
+          </nav>
+        )}
+      </header>
 
-      {/* Header */}
-      <Header
-        currentRole={currentRole}
-        onSelectRole={setCurrentRole}
-        onOpenBookingModal={() => handleOpenBooking()}
-        onOpenScannerModal={() => setIsScannerOpen(true)}
-        onOpenProfileModal={() => setIsProfileOpen(true)}
-        userPoints={currentUser.reputationPoints}
-        userName={currentUser.name}
-      />
+      <main className="flex-1">{content}</main>
 
-      <main className="flex-1">
-        {/* Hero Section */}
-        <HeroSection
-          onOpenBookingModal={() => handleOpenBooking()}
-          onOpenScannerModal={() => setIsScannerOpen(true)}
-          onScrollToMarketplace={scrollToMarketplace}
-        />
+      <footer className="border-t border-slate-200 bg-white print:hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+          <span>C&amp;D Setu · construction &amp; demolition waste exchange · aligned with the C&amp;D Waste Management Rules, 2016</span>
+          <span className="flex gap-4">
+            <a href="#/manifest" className="hover:text-slate-800">Verify a manifest</a>
+            <a href="#/calculator" className="hover:text-slate-800">Waste calculator</a>
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}
 
-        {/* Stakeholder Dashboard Console */}
-        <StakeholderDashboard
-          currentRole={currentRole}
-          pickups={pickups}
-          onOpenBookingModal={() => handleOpenBooking()}
-          onOpenScannerModal={() => setIsScannerOpen(true)}
-          onOpenManifestModal={() => setIsManifestOpen(true)}
-          onTrackPickup={(p) => setTrackingPickup(p)}
-        />
-
-        {/* Material Marketplace with Buy, Sell & Free Exchange */}
-        <MaterialMarketplace
-          listings={listings}
-          onSelectListingForQuote={(listing) => setSelectedListingForOrder(listing)}
-          onOpenCreateListing={() => setIsCreateListingOpen(true)}
-        />
-
-        {/* Decentralized GIS Infrastructure for Tier-2 & Tier-3 Small Cities */}
-        <DecentralizedGISNetwork />
-
-        {/* Smart Proximity & Multi-Tier Routing Logic */}
-        <SmartRoutingEngine />
-
-        {/* C&D Waste & Carbon Savings Calculator */}
-        <CalculatorSection onOpenBookingModal={handleOpenBooking} />
-
-        {/* Swachh Setu Citizen Vigilance & Hotspot Tracker */}
-        <IllegalDumpingReporter
-          reports={dumpingReports}
-          onAddReport={handleAddDumpingReport}
-        />
-      </main>
-
-      {/* Footer */}
-      <Footer />
-
-      {/* Real-Time Waste Pickup Tracking Modal */}
-      <PickupTrackerModal
-        pickup={trackingPickup}
-        isOpen={!!trackingPickup}
-        onClose={() => setTrackingPickup(null)}
-        onUpdateStatus={handleUpdatePickupStatus}
-      />
-
-      {/* User Profile & Gamified Reputation Modal */}
-      <UserProfileModal
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        currentUser={currentUser}
-        allUsers={userProfiles}
-        onSwitchUser={(u) => setCurrentUser(u)}
-      />
-
-      {/* Create Listing / Free Exchange Modal */}
-      <CreateListingModal
-        isOpen={isCreateListingOpen}
-        onClose={() => setIsCreateListingOpen(false)}
-        onListingCreated={handleCreateListing}
-        sellerCity={currentUser.city}
-        sellerName={currentUser.companyOrAffiliation || currentUser.name}
-      />
-
-      {/* AI Rubble Scanner Modal */}
-      <AiWasteScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onProceedToBooking={handleProceedFromScanner}
-      />
-
-      {/* Logistics Booking Tipper Dispatch Modal */}
-      <LogisticsBookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        onConfirmBooking={handleConfirmBooking}
-        initialEstimatedTons={bookingPreloadTons}
-        initialMaterial={bookingPreloadMaterial}
-        initialSegregated={bookingPreloadSegregated}
-      />
-
-      {/* CPCB Form-I Compliance Manifest Modal */}
-      <ComplianceManifestModal
-        isOpen={isManifestOpen}
-        onClose={() => setIsManifestOpen(false)}
-        manifest={manifestDoc}
-      />
-
-      {/* Material Procurement Order Modal */}
-      <MaterialOrderModal
-        listing={selectedListingForOrder}
-        onClose={() => setSelectedListingForOrder(null)}
-        onOrderSuccess={handleOrderSuccess}
-      />
+function NotFound({ text }: { text: string }) {
+  return (
+    <div className="max-w-xl mx-auto px-4 py-20 text-center">
+      <p className="text-slate-700 font-semibold">{text}</p>
+      <a href="#/" className="text-sm text-emerald-700 font-semibold hover:underline mt-2 inline-block">Go home</a>
     </div>
   );
 }

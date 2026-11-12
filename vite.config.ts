@@ -6,7 +6,7 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
-    // Output to build/ to match the Render static site's publish directory.
+    // The Express server serves the frontend from build/.
     build: { outDir: 'build' },
     resolve: {
       alias: {
@@ -14,6 +14,8 @@ export default defineConfig(() => {
       },
     },
     server: {
+      // Forward API calls to the Express server started with `npm run dev:api`.
+      proxy: { '/api': 'http://localhost:8080' },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

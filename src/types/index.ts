@@ -1,6 +1,6 @@
 export type UserRole = 'generator' | 'buyer' | 'transporter' | 'recycler' | 'authority';
 
-export type MaterialCategory = 
+export type MaterialCategory =
   | 'concrete'
   | 'brick_masonry'
   | 'soil_gravel'
@@ -9,185 +9,201 @@ export type MaterialCategory =
   | 'wood'
   | 'others';
 
-export interface UserBadge {
+export interface User {
   id: string;
+  email: string;
   name: string;
-  description: string;
-  icon: string;
-  unlockedAt?: string;
-  isUnlocked: boolean;
+  phone: string;
+  role: UserRole;
+  city: string;
+  company: string;
+  points: number;
 }
 
 export interface ReputationEvent {
   id: string;
-  date: string;
+  points: number;
   title: string;
-  pointsDelta: number;
   reason: string;
-  type: 'gain' | 'penalty';
+  created_at: string;
 }
 
-export interface UserProfile {
+export interface Listing {
   id: string;
-  name: string;
-  phone: string;
-  email: string;
-  role: UserRole;
-  city: string;
-  companyOrAffiliation: string;
-  avatar: string;
-  reputationPoints: number;
-  reputationLevel: 'Bronze Recycler' | 'Silver Recycler' | 'Gold Recycler' | 'Green Champion';
-  totalDivertedMT: number;
-  totalTransactions: number;
-  co2SavedKg: number;
-  badges: UserBadge[];
-  history: {
-    id: string;
-    date: string;
-    type: 'disposal' | 'purchase' | 'listing';
-    title: string;
-    quantity: number;
-    unit: string;
-    status: 'Scheduled' | 'En route' | 'Picked up' | 'Disposal complete';
-    co2SavedKg: number;
-    destinationOrSource: string;
-  }[];
-  reputationLog: ReputationEvent[];
-}
-
-export interface MaterialListing {
-  id: string;
+  seller_id: string;
+  seller_name: string;
+  seller_company: string;
+  seller_role: UserRole;
   title: string;
   category: MaterialCategory;
-  grade?: string;
+  grade: string;
   quantity: number;
-  unit: 'MT' | 'Tons' | 'CFT' | 'Nos';
-  pricePerUnit: number; // 0 indicates free/exchange
-  isFree?: boolean;
-  originalPricePerUnit?: number;
+  unit: 'MT' | 'CFT' | 'Nos';
+  price_per_unit: number;
   location: string;
   city: string;
-  distanceKm: number;
-  sellerName: string;
-  sellerPhone?: string;
-  sellerType: 'Contractor' | 'Recycling Facility' | 'Demolition Site' | 'Individual';
-  isVerified: boolean;
-  isIS383Certified: boolean;
-  labSpecs?: {
-    aivValue?: string;
-    crushingStrength?: string;
-    waterAbsorption?: string;
-    siltContent?: string;
-  };
-  image: string;
+  lat: number | null;
+  lng: number | null;
   condition: 'Segregated & Graded' | 'Clean Demolition' | 'Crushed Aggregates' | 'Raw Rubble';
-  co2SavedKgPerUnit: number;
-  availableFrom: string;
-  description?: string;
+  is_is383: boolean;
+  lab_specs: { aiv?: string; acv?: string; water_absorption?: string; silt?: string } | null;
+  description: string;
+  photo_id: string | null;
+  status: 'active' | 'sold_out' | 'withdrawn';
+  created_at: string;
 }
 
-export interface VehicleOption {
+export type OrderStatus = 'requested' | 'accepted' | 'rejected' | 'delivered' | 'cancelled';
+
+export interface Order {
   id: string;
+  listing_id: string;
+  listing_title: string;
+  listing_location: string;
+  listing_city: string;
+  unit: string;
+  category: MaterialCategory;
+  seller_id: string;
+  buyer_id: string;
+  seller_name: string;
+  seller_phone: string;
+  seller_company: string;
+  buyer_name: string;
+  buyer_phone: string;
+  buyer_company: string;
+  quantity: number;
+  delivery_site: string;
+  distance_km: number;
+  material_cost: number;
+  freight_cost: number;
+  note: string;
+  status: OrderStatus;
+  created_at: string;
+}
+
+export type VehicleCategory = 'Tractor Trolley' | 'Tata 407 (Medium)' | '6-Wheeler Tipper' | '10-Wheeler Heavy Tipper';
+
+export interface Vehicle {
+  id: string;
+  category: VehicleCategory;
+  registration: string;
+  capacity_t: number;
+  base_fare: number;
+  rate_per_km: number;
+  driver_name: string;
+  driver_phone: string;
+  active: boolean;
+}
+
+export type FacilityType = 'Centralized Plant' | 'Decentralized Micro-Crusher' | 'Direct Reuse Site' | 'Ward Collection Point';
+
+export interface Facility {
+  id: string;
+  owner_id: string;
+  owner_name: string;
+  owner_phone: string;
   name: string;
-  category: 'Tractor Trolley' | 'Tata 407 (Medium)' | '6-Wheeler Tipper' | '10-Wheeler Heavy Tipper';
-  capacityTons: number;
-  idealFor: string;
-  baseFare: number;
-  ratePerKm: number;
-  driverName: string;
-  driverRating: number;
-  driverPhone: string;
-  vehicleNumber: string;
-  currentDistanceKm: number;
-  etaMinutes: number;
-  supportsAggregation: boolean;
-}
-
-export type PickupStatus = 'Scheduled' | 'En route' | 'Picked up' | 'Disposal complete';
-
-export interface PickupRequest {
-  id: string;
-  siteName: string;
+  type: FacilityType;
   address: string;
   city: string;
-  generatorType: 'Homeowner' | 'Contractor' | 'Demolition Site';
-  materialType: MaterialCategory;
-  isSegregated: boolean;
-  estimatedTons: number;
-  assignedVehicle?: string;
-  vehicleType: string;
-  driverName?: string;
-  driverPhone?: string;
-  driverVehicleNumber?: string;
+  lat: number | null;
+  lng: number | null;
+  capacity_tpd: number;
+  accepted_materials: MaterialCategory[];
+  processing_cost_per_t: number;
+  ulb_authorization: string;
+}
+
+export type PickupStatus = 'requested' | 'scheduled' | 'en_route' | 'picked_up' | 'completed' | 'cancelled';
+
+export interface Pickup {
+  id: string;
+  generator_id: string;
+  generator_name: string;
+  generator_company: string;
+  generator_phone: string | null;
+  site_name: string;
+  address: string;
+  city: string;
+  lat: number | null;
+  lng: number | null;
+  material: MaterialCategory;
+  segregated: boolean;
+  estimated_tons: number;
+  preferred_time: string | null;
+  notes: string;
   status: PickupStatus;
-  statusTimeline: {
-    status: PickupStatus;
-    time: string;
-    completed: boolean;
-    description: string;
-  }[];
-  currentGps?: {
-    lat: number;
-    lng: number;
-    label: string;
-  };
-  destinationPlant: string;
-  estimatedSalvageValue: number;
-  transportFee: number;
-  netPayout: number;
-  pickupTime: string;
-  manifestId: string;
+  transporter_id: string | null;
+  transporter_name: string | null;
+  transporter_company: string | null;
+  transporter_phone: string | null;
+  vehicle_id: string | null;
+  vehicle_category: string | null;
+  vehicle_registration: string | null;
+  vehicle_capacity_t: number | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+  facility_id: string | null;
+  facility_name: string | null;
+  facility_address: string | null;
+  facility_owner_id: string | null;
+  ulb_authorization: string | null;
+  transport_fee: number | null;
+  gross_t: number | null;
+  tare_t: number | null;
+  net_t: number | null;
+  manifest_no: string | null;
+  timeline: { status: PickupStatus; at: string; by: string; note: string }[];
+  estimated_salvage_inr: number;
+  co2_avoided_kg: number | null;
+  created_at: string;
+  completed_at: string | null;
 }
 
-export interface FacilityNode {
-  id: string;
-  name: string;
-  type: 'Centralized Plant' | 'Decentralized Micro-Crusher' | 'Direct Reuse Site' | 'Ward Malba Bank';
-  address: string;
-  city: string;
-  cityTier: 'Tier 1' | 'Tier 2' | 'Tier 3';
-  capacityTPD: number;
-  currentUtilizationPercent: number;
-  distanceKm: number;
-  acceptedMaterials: MaterialCategory[];
-  isULBAuthorized: boolean;
-  isMobileTrailerUnit?: boolean;
-  processingCostPerTon: number; // ₹ per ton
-}
+export type ReportStatus = 'reported' | 'inspected' | 'dispatched' | 'cleared';
 
-export interface IllegalDumpingReport {
+export interface DumpingReport {
   id: string;
-  reporterName: string;
+  reporter_id: string;
+  reporter_name: string;
   location: string;
   landmark: string;
-  wardNumber: string;
+  ward: string;
   city: string;
-  timestamp: string;
-  estimatedTonnage: string;
-  status: 'Reported' | 'Inspected by ULB' | 'Vehicle Dispatched' | 'Cleared & Restored';
-  imagePlaceholder: string;
+  lat: number | null;
+  lng: number | null;
+  est_tonnage: string;
   remarks: string;
+  photo_id: string | null;
+  status: ReportStatus;
+  authority_note: string;
+  created_at: string;
 }
 
-export interface ManifestDocument {
-  manifestNumber: string;
-  generatorName: string;
-  siteAddress: string;
-  transporterName: string;
-  vehicleNumber: string;
-  driverContact: string;
-  destinationFacility: string;
-  facilityAuthCode: string;
-  materialType: string;
+export interface ScanResult {
+  isConstructionWaste: boolean;
+  composition: Record<MaterialCategory, number>;
+  estimatedVolumeM3: number | null;
+  scaleReference: string;
   segregated: boolean;
-  grossWeightMT: number;
-  tareWeightMT: number;
-  netWeightMT: number;
-  dateGenerated: string;
-  co2MitigatedKg: number;
-  cpcbComplianceRef: string;
-  qrVerificationUrl: string;
-  qrSeed: string;
+  contaminants: string[];
+  confidence: 'low' | 'medium' | 'high';
+  advice: string;
+  estimatedTonnes: number | null;
+  dominantMaterial: MaterialCategory;
+  salvageInrIfSegregated: number | null;
+  mixedDisposalInr: number | null;
+  co2AvoidedKg: number | null;
 }
 
+export interface Stats {
+  platform: {
+    users: number;
+    active_listings: number;
+    facilities: number;
+    tonnes_diverted: number;
+    pickups_completed: number;
+    reports_cleared: number;
+  };
+  me: { tonnes: number; co2_kg: number; points: number } | null;
+}
