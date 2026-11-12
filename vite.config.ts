@@ -6,6 +6,8 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    // Output to build/ to match the Render static site's publish directory.
+    build: { outDir: 'build' },
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, '.'),

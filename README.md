@@ -32,7 +32,7 @@ Aggregate lab values follow IS 383:2016 / IS 2386 (Part 4) conventions: Aggregat
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Erpoojad/c-d-setu)
 
-Deploys as a free Render static site using [`render.yaml`](render.yaml): `npm ci && npm run build`, published from `dist/`. Every push to `main` redeploys automatically.
+Deploys as a free Render static site using [`render.yaml`](render.yaml): `npm ci && npm run build`, published from `build/`. Every push to `main` redeploys automatically.
 
 ## Run it locally
 
@@ -46,7 +46,7 @@ npm run dev        # http://localhost:3000
 | Command | Does |
 |---|---|
 | `npm run dev` | Development server with hot reload |
-| `npm run build` | Production build into `dist/` |
+| `npm run build` | Production build into `build/` |
 | `npm run preview` | Serve the production build |
 | `npm run lint` | TypeScript type check |
 | `npm test` | Unit tests for the engineering factors |

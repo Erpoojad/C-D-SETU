@@ -5,7 +5,7 @@ services:
     name: cd-setu
     runtime: static
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: ./build
     pullRequestPreviewsEnabled: false
     envVars:
       - key: NODE_VERSION
